@@ -15,6 +15,20 @@ export const setUserSession = (user: any) => {
   export const clearUserSession = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("user")
+      localStorage.removeItem("token")
     }
+  }
+
+  export const setToken = (token: string) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("token", token)
+    }
+  }
+
+  export const getToken = () => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("token")
+    }
+    return null
   }
   

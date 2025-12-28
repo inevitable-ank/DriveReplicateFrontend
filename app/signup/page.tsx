@@ -1,13 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 export default function SignupPage() {
-  const { setUser, isAuthenticated } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -18,19 +17,21 @@ export default function SignupPage() {
   })
   const [error, setError] = useState("")
 
+  const { signup, loginWithGoogle, isAuthenticated } = useAuth()
+
   // Redirect if already authenticated
-  if (isAuthenticated) {
-    router.push("/dashboard")
-    return null
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard")
+    }
+  }, [isAuthenticated, router])
 
   const handleGoogleSignup = () => {
     setIsLoading(true)
-    // For now, use the same login flow
-    window.location.href = "/api/auth/google"
+    loginWithGoogle()
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
@@ -52,22 +53,14 @@ export default function SignupPage() {
 
     setIsLoading(true)
 
-    // Create user account (demo - in production, this would call an API)
-    const newUser = {
-      id: `user-${Date.now()}`,
-      email: formData.email,
-      name: formData.name,
-      picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=3b82f6&color=fff`,
-    }
-
-    // Save to localStorage (demo - in production, this would be handled by backend)
-    localStorage.setItem("user", JSON.stringify(newUser))
-    setUser(newUser)
-
-    // Redirect to dashboard
-    setTimeout(() => {
+    try {
+      await signup(formData.name, formData.email, formData.password)
       router.push("/dashboard")
-    }, 500)
+    } catch (err: any) {
+      setError(err.message || "Signup failed. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

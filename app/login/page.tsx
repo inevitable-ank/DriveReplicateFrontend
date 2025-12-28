@@ -1,39 +1,50 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 export default function LoginPage() {
-  const { login, isAuthenticated } = useAuth()
+  const { login, loginWithGoogle, isAuthenticated } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
 
   // Redirect if already authenticated
-  if (isAuthenticated) {
-    router.push("/dashboard")
-    return null
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard")
+    }
+  }, [isAuthenticated, router])
 
   const handleGoogleLogin = () => {
     setIsLoading(true)
-    login()
+    loginWithGoogle()
   }
 
-  const handleDemoLogin = () => {
-    // Demo login for testing without Google OAuth setup
-    const demoUser = {
-      id: "demo-user",
-      email: "demo@example.com",
-      name: "Demo User",
-      picture: "https://via.placeholder.com/40",
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    
+    if (!email || !password) {
+      setError("Please fill in all fields")
+      return
     }
-    localStorage.setItem("user", JSON.stringify(demoUser))
-    router.push("/dashboard")
+
+    setIsLoading(true)
+
+    try {
+      await login(email, password)
+      router.push("/dashboard")
+    } catch (err: any) {
+      setError(err.message || "Login failed. Please check your credentials.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -59,7 +70,13 @@ export default function LoginPage() {
             <p className="text-gray-400">Sign in to your Google Drive account</p>
           </div>
 
-          <div className="space-y-4">
+          {error && (
+            <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Input */}
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium text-gray-300">
@@ -70,8 +87,12 @@ export default function LoginPage() {
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setError("")
+                }}
                 className="w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white placeholder-gray-500 transition-colors hover:border-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                required
               />
             </div>
 
@@ -85,32 +106,36 @@ export default function LoginPage() {
                 type="password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setError("")
+                }}
                 className="w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white placeholder-gray-500 transition-colors hover:border-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                required
               />
             </div>
 
-            <p className="text-xs text-gray-500">Demo: Use any email/password to test with demo user</p>
-          </div>
+            <div className="space-y-3">
+              {/* Google OAuth Button */}
+              <Button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                className="w-full rounded-lg border border-gray-600 bg-white py-2 px-4 font-medium text-black transition-colors hover:bg-gray-100 disabled:opacity-50"
+              >
+                {isLoading ? "Signing in..." : "Sign in with Google"}
+              </Button>
 
-          <div className="space-y-3">
-            {/* Google OAuth Button */}
-            <Button
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-              className="w-full rounded-lg border border-gray-600 bg-white py-2 px-4 font-medium text-black transition-colors hover:bg-gray-100 disabled:opacity-50"
-            >
-              {isLoading ? "Signing in..." : "Sign in with Google"}
-            </Button>
-
-            {/* Demo Login Button */}
-            <Button
-              onClick={handleDemoLogin}
-              className="w-full rounded-lg bg-blue-600 py-2 px-4 font-medium text-white transition-colors hover:bg-blue-700"
-            >
-              Demo Login
-            </Button>
-          </div>
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full rounded-lg bg-blue-600 py-2 px-4 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isLoading ? "Signing in..." : "Sign In"}
+              </Button>
+            </div>
+          </form>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">

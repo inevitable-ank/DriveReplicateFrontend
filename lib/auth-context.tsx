@@ -3,12 +3,16 @@
 import type React from "react"
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import type { User } from "@/lib/types"
-import { setUserSession, getUserSession, clearUserSession } from "@/lib/utils/auth"
+import { setUserSession, getUserSession, clearUserSession, setToken, getToken } from "@/lib/utils/auth"
+import { authAPI } from "@/lib/api"
 
 interface AuthContextType {
   user: User | null
+  token: string | null
   loading: boolean
-  login: () => void
+  signup: (name: string, email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<void>
+  loginWithGoogle: () => void
   logout: () => void
   isAuthenticated: boolean
   setUser: (user: User) => void
@@ -18,19 +22,41 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUserState] = useState<User | null>(null)
+  const [token, setTokenState] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Load user from token on mount
   useEffect(() => {
-    try {
-      const storedUser = getUserSession()
-      if (storedUser) {
-        setUserState(storedUser)
+    const storedToken = getToken()
+    if (storedToken) {
+      setTokenState(storedToken)
+      // Verify token and get user from backend
+      authAPI.getCurrentUser()
+        .then((userData) => {
+          setUserState(userData)
+          setUserSession(userData)
+        })
+        .catch(() => {
+          // Token invalid, clear it
+          clearUserSession()
+          setTokenState(null)
+        })
+        .finally(() => {
+          setLoading(false)
+        })
+    } else {
+      // Try to get user from localStorage as fallback
+      try {
+        const storedUser = getUserSession()
+        if (storedUser) {
+          setUserState(storedUser)
+        }
+      } catch (error) {
+        console.error("Failed to initialize auth:", error)
+        clearUserSession()
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error("Failed to initialize auth:", error)
-      clearUserSession()
-    } finally {
-      setLoading(false)
     }
   }, [])
 
@@ -39,24 +65,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUserSession(newUser)
   }, [])
 
-  const login = useCallback(() => {
+  const signup = useCallback(async (name: string, email: string, password: string) => {
+    const { user: userData, token: newToken } = await authAPI.signup(name, email, password)
+    setUserState(userData)
+    setTokenState(newToken)
+    setUserSession(userData)
+    setToken(newToken)
+  }, [])
+
+  const login = useCallback(async (email: string, password: string) => {
+    const { user: userData, token: newToken } = await authAPI.login(email, password)
+    setUserState(userData)
+    setTokenState(newToken)
+    setUserSession(userData)
+    setToken(newToken)
+  }, [])
+
+  const loginWithGoogle = useCallback(() => {
     window.location.href = "/api/auth/google"
   }, [])
 
   const logout = useCallback(() => {
+    authAPI.logout().catch(console.error)
     setUserState(null)
+    setTokenState(null)
     clearUserSession()
-    fetch("/api/auth/logout", { method: "POST" })
-      .then(() => {
-        window.location.href = "/login"
-      })
-      .catch((error) => console.error("Logout failed:", error))
+    window.location.href = "/login"
   }, [])
 
   const value: AuthContextType = {
     user,
+    token,
     loading,
+    signup,
     login,
+    loginWithGoogle,
     logout,
     isAuthenticated: !!user,
     setUser,
