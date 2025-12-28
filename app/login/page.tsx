@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 export default function LoginPage() {
@@ -122,9 +123,9 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-gray-400">
             No account?{" "}
-            <a href="#" className="font-medium text-blue-500 hover:text-blue-400">
+            <Link href="/signup" className="font-medium text-blue-500 hover:text-blue-400">
               Sign up for free
-            </a>
+            </Link>
           </p>
         </div>
       </div>
