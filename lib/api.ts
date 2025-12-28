@@ -94,5 +94,27 @@ export const authAPI = {
       method: 'POST',
     });
   },
+
+  // Google OAuth callback handler
+  handleGoogleCallback: async (code: string) => {
+    const response = await apiCall<{
+      success: boolean;
+      message: string;
+      data: {
+        user: {
+          id: string;
+          name: string;
+          email: string;
+          picture: string | null;
+          provider: string;
+        };
+        token: string;
+      };
+    }>('/auth/google/callback', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+    return response.data;
+  },
 };
 

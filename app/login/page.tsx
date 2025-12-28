@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { GoogleIcon } from "@/components/ui/google-icon"
 
 export default function LoginPage() {
   const { login, loginWithGoogle, isAuthenticated } = useAuth()
@@ -142,7 +143,10 @@ export default function LoginPage() {
                     <span>Signing in...</span>
                   </>
                 ) : (
-                  "Sign in with Google"
+                  <>
+                    <GoogleIcon className="h-5 w-5" />
+                    <span>Sign in with Google</span>
+                  </>
                 )}
               </Button>
 

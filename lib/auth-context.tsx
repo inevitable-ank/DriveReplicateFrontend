@@ -82,7 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const loginWithGoogle = useCallback(() => {
-    window.location.href = "/api/auth/google"
+    // Redirect to backend Google OAuth endpoint
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+    window.location.href = `${API_BASE_URL}/auth/google`
   }, [])
 
   const logout = useCallback(() => {

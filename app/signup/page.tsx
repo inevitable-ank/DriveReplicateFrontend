@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { GoogleIcon } from "@/components/ui/google-icon"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -200,7 +201,10 @@ export default function SignupPage() {
                     <span>Creating account...</span>
                   </>
                 ) : (
-                  "Sign up with Google"
+                  <>
+                    <GoogleIcon className="h-5 w-5" />
+                    <span>Sign up with Google</span>
+                  </>
                 )}
               </Button>
 
