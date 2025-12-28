@@ -13,6 +13,7 @@ export interface User {
     modifiedDate: string
     owner: string
     mimeType: string
+    icon: string
     description?: string
   }
   
