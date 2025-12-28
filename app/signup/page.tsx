@@ -72,7 +72,18 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex h-screen bg-[#1a1a1a] text-white">
+    <div className="flex h-screen bg-[#1a1a1a] text-white relative">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4 bg-gray-900 rounded-lg p-8 border border-gray-700">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-600 border-t-blue-500"></div>
+            <p className="text-gray-300 font-medium">Creating your account...</p>
+            <p className="text-sm text-gray-500">Please wait</p>
+          </div>
+        </div>
+      )}
+
       {/* Left side - Branding */}
       <div className="hidden w-1/2 flex-col items-center justify-center gap-8 px-8 lg:flex">
         <div className="flex items-center gap-3">
@@ -113,7 +124,8 @@ export default function SignupPage() {
                 placeholder="John Doe"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white placeholder-gray-500 transition-colors hover:border-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                disabled={isLoading}
+                className="w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white placeholder-gray-500 transition-colors hover:border-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -130,7 +142,8 @@ export default function SignupPage() {
                 placeholder="you@example.com"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white placeholder-gray-500 transition-colors hover:border-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                disabled={isLoading}
+                className="w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white placeholder-gray-500 transition-colors hover:border-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -147,7 +160,8 @@ export default function SignupPage() {
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white placeholder-gray-500 transition-colors hover:border-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                disabled={isLoading}
+                className="w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white placeholder-gray-500 transition-colors hover:border-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 required
                 minLength={6}
               />
@@ -165,7 +179,8 @@ export default function SignupPage() {
                 placeholder="••••••••"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white placeholder-gray-500 transition-colors hover:border-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                disabled={isLoading}
+                className="w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white placeholder-gray-500 transition-colors hover:border-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 required
                 minLength={6}
               />
@@ -177,18 +192,32 @@ export default function SignupPage() {
                 type="button"
                 onClick={handleGoogleSignup}
                 disabled={isLoading}
-                className="w-full rounded-lg border border-gray-600 bg-white py-2 px-4 font-medium text-black transition-colors hover:bg-gray-100 disabled:opacity-50"
+                className="w-full rounded-lg border border-gray-600 bg-white py-2 px-4 font-medium text-black transition-colors hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {isLoading ? "Creating account..." : "Sign up with Google"}
+                {isLoading ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                    <span>Creating account...</span>
+                  </>
+                ) : (
+                  "Sign up with Google"
+                )}
               </Button>
 
               {/* Submit Button */}
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full rounded-lg bg-blue-600 py-2 px-4 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                className="w-full rounded-lg bg-blue-600 py-2 px-4 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {isLoading ? "Creating account..." : "Create Account"}
+                {isLoading ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    <span>Creating account...</span>
+                  </>
+                ) : (
+                  "Create Account"
+                )}
               </Button>
             </div>
           </form>
