@@ -27,13 +27,47 @@ async function apiCall<T>(
     credentials: 'include', // Important for CORS with credentials
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || 'An error occurred');
+  // Handle 204 No Content responses (no response body)
+  if (response.status === 204) {
+    if (!response.ok) {
+      throw new Error('An error occurred');
+    }
+    return {} as T;
   }
 
-  return data;
+  // Check if response has content before parsing JSON
+  const contentType = response.headers.get('content-type');
+  const hasJsonContent = contentType && contentType.includes('application/json');
+  
+  // Get response text first to check if it's empty
+  const text = await response.text();
+  
+  if (!response.ok) {
+    // Try to parse error message from JSON if available
+    if (hasJsonContent && text) {
+      try {
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message || 'An error occurred');
+      } catch {
+        throw new Error(text || 'An error occurred');
+      }
+    }
+    throw new Error(text || 'An error occurred');
+  }
+
+  // Parse JSON only if there's content and it's JSON
+  if (hasJsonContent && text) {
+    try {
+      return JSON.parse(text) as T;
+    } catch (error) {
+      // If JSON parsing fails, return empty object
+      console.warn('Failed to parse JSON response:', error);
+      return {} as T;
+    }
+  }
+
+  // Return empty object if no content
+  return {} as T;
 }
 
 // Auth API functions
