@@ -355,5 +355,43 @@ export const fileAPI = {
     });
     return response.data.file;
   },
+
+  // Download shared file using share token (no auth required)
+  downloadSharedFile: async (shareToken: string, fileName: string) => {
+    // Don't use apiCall here - we don't want to add auth headers
+    const response = await fetch(
+      `${API_BASE_URL}/files/shared/${shareToken}/download`,
+      {
+        method: "GET",
+        // No Authorization header - the share token is in the URL
+      }
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = "Download failed";
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+    
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const contentDisposition = response.headers.get("Content-Disposition");
+    const downloadName = contentDisposition 
+      ? contentDisposition.split("filename=")[1]?.replace(/"/g, "") || fileName
+      : fileName;
+    a.download = downloadName;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
 };
 

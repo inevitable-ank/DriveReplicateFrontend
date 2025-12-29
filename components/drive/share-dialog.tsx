@@ -231,6 +231,9 @@ export function ShareDialog({ open, file, onOpenChange, onShareComplete }: Share
                   Share
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                💡 The recipient must be a registered user. They'll see this file in their "Shared with me" section when they log in.
+              </p>
             </div>
 
             {/* Shared Users List */}

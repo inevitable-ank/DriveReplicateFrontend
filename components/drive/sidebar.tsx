@@ -79,13 +79,16 @@ function NavItem({
   icon,
   label,
   active = false,
+  onClick,
 }: {
   icon: React.ReactNode
   label: string
   active?: boolean
+  onClick?: () => void
 }) {
   return (
     <button
+      onClick={onClick}
       className={`w-full flex items-center gap-4 px-4 py-2 rounded-lg transition-colors ${
         active ? "bg-blue-600 text-white font-medium" : "text-muted-foreground hover:bg-gray-800"
       }`}

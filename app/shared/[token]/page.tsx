@@ -40,11 +40,12 @@ export default function SharedFilePage() {
   }
 
   const handleDownload = async () => {
-    if (!file) return
+    if (!file || !token) return
     
     try {
       showToast(`Downloading ${file.name}...`, "info")
-      await fileAPI.downloadFile(file.id, file.name)
+      // Use the share token to download instead of file ID with auth
+      await fileAPI.downloadSharedFile(token, file.name || file.original_name)
       showToast(`Download started: ${file.name}`, "success")
     } catch (err: any) {
       console.error("Failed to download file:", err)
