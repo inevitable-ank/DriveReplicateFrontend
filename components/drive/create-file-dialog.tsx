@@ -149,8 +149,8 @@ export function CreateFileDialog({ open, onOpenChange, onCreateFile, onUploadCom
                 onKeyPress={(e) => e.key === "Enter" && handleCreate()}
                 autoFocus
               />
-              <p className="text-xs text-yellow-500">
-                Note: Folder creation is not yet available in the backend
+              <p className="text-xs text-muted-foreground">
+                Enter a name for your new folder
               </p>
             </div>
           </TabsContent>

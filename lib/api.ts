@@ -210,6 +210,21 @@ export const fileAPI = {
     return response.data.file;
   },
 
+  // Create folder (matches backend: POST /api/files/folder)
+  createFolder: async (folderName: string, parentId?: string) => {
+    const response = await apiCall<{
+      success: boolean;
+      data: { folder: any };
+    }>("/files/folder", {
+      method: "POST",
+      body: JSON.stringify({ 
+        name: folderName,
+        parent_id: parentId || null 
+      }),
+    });
+    return response.data.folder;
+  },
+
   // Delete file/folder
   deleteFile: async (fileId: string) => {
     await apiCall(`/files/${fileId}`, {

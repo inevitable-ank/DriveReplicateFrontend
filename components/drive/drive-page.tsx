@@ -120,10 +120,11 @@ export default function DrivePage() {
   const handleCreateFile = useCallback(async (name: string, type: "file" | "folder") => {
     try {
       if (type === "folder") {
-        // Backend doesn't have folder creation endpoint, so we'll skip for now
-        // TODO: Implement folder creation if backend adds it
-        console.warn("Folder creation not yet implemented in backend")
-        setError("Folder creation is not yet available")
+        // Create folder via API
+        await fileAPI.createFolder(name)
+        showToast(`Folder "${name}" created successfully`, "success")
+        // Refresh file list to show the new folder
+        await fetchFiles()
       } else {
         // For file creation, the file picker is handled in CreateFileDialog
         // This function receives the file name and type, but actual file selection
@@ -133,9 +134,11 @@ export default function DrivePage() {
       }
     } catch (err: any) {
       console.error("Failed to create file/folder:", err)
-      setError(err.message || "Failed to create file/folder")
+      const errorMsg = err.message || "Failed to create file/folder"
+      setError(errorMsg)
+      showToast(errorMsg, "error")
     }
-  }, [fetchFiles])
+  }, [fetchFiles, showToast])
 
   const handleDeleteFile = useCallback(async () => {
     if (!selectedFile) return
