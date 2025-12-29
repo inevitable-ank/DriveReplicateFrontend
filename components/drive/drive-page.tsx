@@ -12,6 +12,7 @@ import { RenameDialog } from "./rename-dialog"
 import { DeleteConfirmDialog } from "./delete-confirm-dialog"
 import { FileInfoDialog } from "./file-info-dialog"
 import { ShareDialog } from "./share-dialog"
+import { FileViewer } from "./file-viewer"
 import type { File } from "@/lib/types"
 import { getFileIcon, formatDate, formatFileSize } from "@/lib/utils/file"
 import { fileAPI } from "@/lib/api"
@@ -37,6 +38,8 @@ export default function DrivePage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [fileInfoDialogOpen, setFileInfoDialogOpen] = useState(false)
   const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [fileViewerOpen, setFileViewerOpen] = useState(false)
+  const [viewingFile, setViewingFile] = useState<File | null>(null)
 
   // Fetch files from API
   const fetchFiles = useCallback(async () => {
@@ -178,6 +181,33 @@ export default function DrivePage() {
     setContextMenu({ x: e.clientX, y: e.clientY })
   }, [])
 
+  const handleFileClick = useCallback((file: File) => {
+    if (file.type === "folder") {
+      // TODO: Navigate into folder
+      console.log("Navigate to folder:", file.name)
+    } else {
+      // Open file in viewer
+      setViewingFile(file)
+      setFileViewerOpen(true)
+    }
+  }, [])
+
+  const handleViewerNext = useCallback(() => {
+    if (!viewingFile || !files.length) return
+    const currentIndex = files.findIndex(f => f.id === viewingFile.id)
+    if (currentIndex < files.length - 1) {
+      setViewingFile(files[currentIndex + 1])
+    }
+  }, [viewingFile, files])
+
+  const handleViewerPrevious = useCallback(() => {
+    if (!viewingFile || !files.length) return
+    const currentIndex = files.findIndex(f => f.id === viewingFile.id)
+    if (currentIndex > 0) {
+      setViewingFile(files[currentIndex - 1])
+    }
+  }, [viewingFile, files])
+
   const handleContextMenuAction = useCallback(
     async (action: string) => {
       switch (action) {
@@ -283,7 +313,11 @@ export default function DrivePage() {
           {/* File Grid or Empty State */}
           {!loading && !error && (
             filteredFiles.length > 0 ? (
-              <FileGrid files={filteredFiles} onContextMenu={handleFileContextMenu} />
+              <FileGrid 
+                files={filteredFiles} 
+                onContextMenu={handleFileContextMenu}
+                onFileClick={handleFileClick}
+              />
             ) : (
               <div className="flex flex-col items-center justify-center h-64 space-y-4">
                 <p className="text-muted-foreground text-lg">No files found</p>
@@ -343,6 +377,18 @@ export default function DrivePage() {
         file={selectedFile}
         onOpenChange={setShareDialogOpen}
         onShareComplete={fetchFiles}
+      />
+
+      <FileViewer
+        open={fileViewerOpen}
+        file={viewingFile}
+        files={filteredFiles}
+        onClose={() => {
+          setFileViewerOpen(false)
+          setViewingFile(null)
+        }}
+        onNext={handleViewerNext}
+        onPrevious={handleViewerPrevious}
       />
       </div>
     </FileUploadZone>

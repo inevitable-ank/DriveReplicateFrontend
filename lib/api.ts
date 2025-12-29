@@ -244,6 +244,27 @@ export const fileAPI = {
     return response.data.file;
   },
 
+  // Get file preview URL (for viewing in browser)
+  getFilePreviewUrl: async (fileId: string): Promise<string> => {
+    const token = localStorage.getItem("token");
+    const response = await fetch(
+      `${API_BASE_URL}/files/${fileId}/download`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error("Failed to load file preview");
+    }
+    
+    const blob = await response.blob();
+    return window.URL.createObjectURL(blob);
+  },
+
   // Download file
   downloadFile: async (fileId: string, fileName: string) => {
     const token = localStorage.getItem("token");

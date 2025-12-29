@@ -7,22 +7,51 @@ import { MoreVertical } from "lucide-react"
 interface FileGridProps {
   files: File[]
   onContextMenu: (e: React.MouseEvent, file: File) => void
+  onFileClick?: (file: File) => void
 }
 
-export function FileGrid({ files, onContextMenu }: FileGridProps) {
+export function FileGrid({ files, onContextMenu, onFileClick }: FileGridProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {files.map((file) => (
-        <FileCard key={file.id} file={file} onContextMenu={onContextMenu} />
+        <FileCard 
+          key={file.id} 
+          file={file} 
+          onContextMenu={onContextMenu}
+          onClick={onFileClick}
+        />
       ))}
     </div>
   )
 }
 
-function FileCard({ file, onContextMenu }: { file: File; onContextMenu: (e: React.MouseEvent, file: File) => void }) {
+function FileCard({ 
+  file, 
+  onContextMenu,
+  onClick
+}: { 
+  file: File
+  onContextMenu: (e: React.MouseEvent, file: File) => void
+  onClick?: (file: File) => void
+}) {
+  const handleClick = (e: React.MouseEvent) => {
+    // Don't open if right-click or if clicking the more options button
+    if (e.button === 2 || (e.target as HTMLElement).closest('button')) {
+      return
+    }
+    
+    if (file.type === "folder") {
+      // TODO: Handle folder navigation
+      console.log("Folder clicked:", file.name)
+    } else if (onClick) {
+      onClick(file)
+    }
+  }
+
   return (
     <div
       onContextMenu={(e) => onContextMenu(e, file)}
+      onClick={handleClick}
       className="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-750 transition-colors cursor-pointer group"
     >
       <div className="aspect-square bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center relative overflow-hidden">
