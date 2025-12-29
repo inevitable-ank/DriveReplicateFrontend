@@ -15,8 +15,10 @@ import type { File } from "@/lib/types"
 import { getFileIcon, formatDate, formatFileSize } from "@/lib/utils/file"
 import { fileAPI } from "@/lib/api"
 import { FileUploadZone } from "./file-upload"
+import { useToast } from "@/components/ui/toast"
 
 export default function DrivePage() {
+  const { showToast } = useToast()
   const [files, setFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -172,9 +174,12 @@ export default function DrivePage() {
         case "download":
           if (selectedFile && selectedFile.type === "file") {
             try {
+              // Show toast notification when download starts
+              showToast(`Download started: ${selectedFile.name}`, "success", 3000)
               await fileAPI.downloadFile(selectedFile.id, selectedFile.name)
             } catch (err: any) {
               console.error("Failed to download file:", err)
+              showToast(`Download failed: ${err.message || "Unknown error"}`, "error", 4000)
               setError(err.message || "Failed to download file")
             }
           }
