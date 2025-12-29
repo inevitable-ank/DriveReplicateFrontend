@@ -14,6 +14,7 @@ import { FileInfoDialog } from "./file-info-dialog"
 import type { File } from "@/lib/types"
 import { getFileIcon, formatDate, formatFileSize } from "@/lib/utils/file"
 import { fileAPI } from "@/lib/api"
+import { FileUploadZone } from "./file-upload"
 
 export default function DrivePage() {
   const [files, setFiles] = useState<File[]>([])
@@ -38,27 +39,43 @@ export default function DrivePage() {
     setLoading(true)
     setError(null)
     try {
-      const fetchedFiles = await fileAPI.getFiles({
-        search: searchQuery || undefined,
-        type: typeFilter === "all" ? undefined : typeFilter as "file" | "folder",
-      })
+      let fetchedFiles: any[] = []
+      
+      // Use search endpoint if there's a search query, otherwise use regular getFiles
+      if (searchQuery.trim()) {
+        fetchedFiles = await fileAPI.searchFiles(searchQuery.trim())
+      } else {
+        fetchedFiles = await fileAPI.getFiles(100, 0)
+      }
       
       // Transform backend response to match frontend File type
-      const transformedFiles: File[] = fetchedFiles.map((file: any) => ({
-        id: file.id || file._id,
-        name: file.name,
-        type: file.type,
-        size: typeof file.size === "number" 
-          ? formatFileSize(file.size) 
-          : file.size || (file.type === "folder" ? "—" : "0 KB"),
-        modifiedDate: file.modifiedDate || file.updatedAt || formatDate(new Date(file.createdAt)),
-        owner: file.owner?.name || "You",
-        mimeType: file.mimeType || (file.type === "folder" ? "folder" : "application/octet-stream"),
-        icon: getFileIcon(file.type, file.name),
-        description: file.description,
-      }))
+      // Backend returns: id, name, original_name, size, mime_type, created_at
+      const transformedFiles: File[] = fetchedFiles.map((file: any) => {
+        // Determine if it's a folder (backend might not have type field, check mime_type)
+        const isFolder = file.mime_type === "folder" || file.type === "folder"
+        const displayName = file.original_name || file.name
+        
+        return {
+          id: file.id || file._id,
+          name: displayName,
+          type: isFolder ? "folder" : "file",
+          size: typeof file.size === "number" 
+            ? formatFileSize(file.size) 
+            : (isFolder ? "—" : file.size || "0 KB"),
+          modifiedDate: file.created_at ? formatDate(new Date(file.created_at)) : formatDate(new Date()),
+          owner: file.owner?.name || "You",
+          mimeType: file.mime_type || (isFolder ? "folder" : "application/octet-stream"),
+          icon: getFileIcon(isFolder ? "folder" : "file", displayName),
+          description: file.description,
+        }
+      })
       
-      setFiles(transformedFiles)
+      // Apply type filter client-side if needed (backend doesn't support it)
+      const filteredByType = typeFilter === "all" 
+        ? transformedFiles 
+        : transformedFiles.filter(f => f.type === typeFilter.toLowerCase())
+      
+      setFiles(filteredByType)
     } catch (err: any) {
       console.error("Failed to fetch files:", err)
       setError(err.message || "Failed to load files")
@@ -73,24 +90,23 @@ export default function DrivePage() {
     fetchFiles()
   }, [fetchFiles])
 
-  // Client-side filtering (as fallback, backend should handle search)
-  const filteredFiles = files.filter((file) => {
-    const matchesSearch = !searchQuery || file.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesType = typeFilter === "all" || file.type === typeFilter.toLowerCase()
-    return matchesSearch && matchesType
-  })
+  // Files are already filtered by backend (search) and client-side (type)
+  const filteredFiles = files
 
   const handleCreateFile = useCallback(async (name: string, type: "file" | "folder") => {
     try {
       if (type === "folder") {
-        await fileAPI.createFolder(name)
+        // Backend doesn't have folder creation endpoint, so we'll skip for now
+        // TODO: Implement folder creation if backend adds it
+        console.warn("Folder creation not yet implemented in backend")
+        setError("Folder creation is not yet available")
       } else {
-        // For file creation, you might want to show a file picker instead
-        // For now, we'll just refresh the list
-        console.warn("File creation via dialog not implemented. Use file upload instead.")
+        // For file creation, the file picker is handled in CreateFileDialog
+        // This function receives the file name and type, but actual file selection
+        // happens in the dialog component. We just need to refresh the list.
+        // The actual upload is handled by the dialog's file input handler.
+        await fetchFiles()
       }
-      // Refresh file list
-      await fetchFiles()
     } catch (err: any) {
       console.error("Failed to create file/folder:", err)
       setError(err.message || "Failed to create file/folder")
@@ -183,11 +199,17 @@ export default function DrivePage() {
   )
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <Sidebar onNewClick={() => setCreateDialogOpen(true)} activeNav={activeNav} onNavChange={setActiveNav} />
+    <FileUploadZone onUploadComplete={fetchFiles} onError={setError}>
+      <div className="flex h-screen bg-background text-foreground">
+        <Sidebar onNewClick={() => setCreateDialogOpen(true)} activeNav={activeNav} onNavChange={setActiveNav} />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+        <Header 
+          searchQuery={searchQuery} 
+          onSearchChange={setSearchQuery}
+          onUploadComplete={fetchFiles}
+          onUploadError={setError}
+        />
 
         <div className="flex-1 overflow-auto px-6 py-4">
           {/* Header and Filters */}
@@ -253,7 +275,13 @@ export default function DrivePage() {
       </div>
 
       {/* Dialogs */}
-      <CreateFileDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} onCreateFile={handleCreateFile} />
+      <CreateFileDialog 
+        open={createDialogOpen} 
+        onOpenChange={setCreateDialogOpen} 
+        onCreateFile={handleCreateFile}
+        onUploadComplete={fetchFiles}
+        onError={setError}
+      />
 
       <RenameDialog
         open={renameDialogOpen}
@@ -270,6 +298,7 @@ export default function DrivePage() {
       />
 
       <FileInfoDialog open={fileInfoDialogOpen} file={selectedFile} onOpenChange={setFileInfoDialogOpen} />
-    </div>
+      </div>
+    </FileUploadZone>
   )
 }

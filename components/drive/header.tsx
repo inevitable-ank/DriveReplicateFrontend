@@ -2,17 +2,20 @@
 
 import type React from "react"
 
-import { Search, Settings, Grid3x3, HelpCircle, LogOut, MoreVertical } from "lucide-react"
+import { Search, Settings, Grid3x3, HelpCircle, LogOut, MoreVertical, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { useState, useRef, useEffect } from "react"
+import { FileUpload } from "./file-upload"
 
 interface HeaderProps {
   searchQuery: string
   onSearchChange: (query: string) => void
+  onUploadComplete?: () => void
+  onUploadError?: (error: string) => void
 }
 
-export function Header({ searchQuery, onSearchChange }: HeaderProps) {
+export function Header({ searchQuery, onSearchChange, onUploadComplete, onUploadError }: HeaderProps) {
   const { user, logout } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -56,7 +59,9 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
       </div>
 
       {/* Header Actions */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
+        <FileUpload onUploadComplete={onUploadComplete || (() => {})} onError={onUploadError} />
+        
         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
           <HelpCircle className="w-5 h-5" />
         </Button>

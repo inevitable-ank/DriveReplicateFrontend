@@ -130,16 +130,11 @@ export const authAPI = {
 
 // File API functions
 export const fileAPI = {
-  // Get all files
-  getFiles: async (params?: {
-    parentFolderId?: string;
-    search?: string;
-    type?: "file" | "folder" | "all";
-  }) => {
+  // Get all files (matches backend: GET /api/files?limit=100&offset=0)
+  getFiles: async (limit: number = 100, offset: number = 0) => {
     const queryParams = new URLSearchParams();
-    if (params?.parentFolderId) queryParams.append("parentFolderId", params.parentFolderId);
-    if (params?.search) queryParams.append("search", params.search);
-    if (params?.type && params.type !== "all") queryParams.append("type", params.type);
+    queryParams.append("limit", limit.toString());
+    queryParams.append("offset", offset.toString());
     
     const response = await apiCall<{
       success: boolean;
@@ -150,34 +145,35 @@ export const fileAPI = {
     return response.data.files;
   },
 
-  // Upload file
-  uploadFile: async (file: File, parentFolderId?: string) => {
+  // Search files (matches backend: GET /api/files/search?q=term)
+  searchFiles: async (query: string) => {
+    const response = await apiCall<{
+      success: boolean;
+      data: { files: any[] };
+    }>(`/files/search?q=${encodeURIComponent(query)}`, {
+      method: "GET",
+    });
+    return response.data.files;
+  },
+
+  // Upload file (matches backend: POST /api/files/upload)
+  uploadFile: async (file: File, customName?: string) => {
     const formData = new FormData();
     formData.append("file", file);
-    if (parentFolderId) formData.append("parentFolderId", parentFolderId);
+    if (customName) {
+      formData.append("name", customName);
+    }
 
     const response = await apiCall<{
       success: boolean;
-      data: any;
+      data: { file: any };
     }>("/files/upload", {
       method: "POST",
       body: formData,
       // Don't set Content-Type header - browser will set it with boundary
       headers: {},
     });
-    return response.data;
-  },
-
-  // Create folder
-  createFolder: async (name: string, parentFolderId?: string) => {
-    const response = await apiCall<{
-      success: boolean;
-      data: any;
-    }>("/files/folder", {
-      method: "POST",
-      body: JSON.stringify({ name, parentFolderId }),
-    });
-    return response.data;
+    return response.data.file;
   },
 
   // Delete file/folder
@@ -187,16 +183,16 @@ export const fileAPI = {
     });
   },
 
-  // Rename file/folder
+  // Rename file/folder (matches backend: PATCH /api/files/:id/rename)
   renameFile: async (fileId: string, newName: string) => {
     const response = await apiCall<{
       success: boolean;
-      data: any;
+      data: { file: any };
     }>(`/files/${fileId}/rename`, {
       method: "PATCH",
       body: JSON.stringify({ name: newName }),
     });
-    return response.data;
+    return response.data.file;
   },
 
   // Download file
@@ -229,15 +225,15 @@ export const fileAPI = {
     document.body.removeChild(a);
   },
 
-  // Get file info
+  // Get file info (matches backend: GET /api/files/:id)
   getFileInfo: async (fileId: string) => {
     const response = await apiCall<{
       success: boolean;
-      data: any;
+      data: { file: any };
     }>(`/files/${fileId}`, {
       method: "GET",
     });
-    return response.data;
+    return response.data.file;
   },
 };
 
