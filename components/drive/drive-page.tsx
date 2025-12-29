@@ -50,10 +50,13 @@ export default function DrivePage() {
       
       // Transform backend response to match frontend File type
       // Backend returns: id, name, original_name, size, mime_type, created_at
+      // Note: 'name' is the current/renamed name, 'original_name' is the original filename
       const transformedFiles: File[] = fetchedFiles.map((file: any) => {
         // Determine if it's a folder (backend might not have type field, check mime_type)
         const isFolder = file.mime_type === "folder" || file.type === "folder"
-        const displayName = file.original_name || file.name
+        // Use 'name' as display name since it's updated when renamed
+        // 'original_name' is just metadata about the original filename
+        const displayName = file.name || file.original_name
         
         return {
           id: file.id || file._id,
