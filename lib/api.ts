@@ -191,11 +191,14 @@ export const fileAPI = {
   },
 
   // Upload file (matches backend: POST /api/files/upload)
-  uploadFile: async (file: File, customName?: string) => {
+  uploadFile: async (file: File, customName?: string, parentId?: string | null) => {
     const formData = new FormData();
     formData.append("file", file);
     if (customName) {
       formData.append("name", customName);
+    }
+    if (parentId) {
+      formData.append("parent_id", parentId);
     }
 
     const response = await apiCall<{

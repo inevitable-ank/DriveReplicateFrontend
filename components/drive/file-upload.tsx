@@ -21,18 +21,26 @@ export function FileUpload({ onUploadComplete, onError }: FileUploadProps) {
       setUploading(true)
 
       try {
-        // Upload files sequentially to avoid overwhelming the server
-        for (const file of fileArray) {
-          try {
-            await fileAPI.uploadFile(file)
-            setUploadProgress((prev) => ({
-              ...prev,
-              [file.name]: 100,
-            }))
-          } catch (err: any) {
-            console.error(`Failed to upload ${file.name}:`, err)
-            if (onError) {
-              onError(`Failed to upload ${file.name}: ${err.message}`)
+        // Check if this is a folder upload (has webkitRelativePath)
+        const isFolderUpload = fileArray.some(file => (file as any).webkitRelativePath)
+        
+        if (isFolderUpload) {
+          // Handle folder upload with structure preservation
+          await uploadFolderWithStructure(fileArray)
+        } else {
+          // Handle regular file upload
+          for (const file of fileArray) {
+            try {
+              await fileAPI.uploadFile(file)
+              setUploadProgress((prev) => ({
+                ...prev,
+                [file.name]: 100,
+              }))
+            } catch (err: any) {
+              console.error(`Failed to upload ${file.name}:`, err)
+              if (onError) {
+                onError(`Failed to upload ${file.name}: ${err.message}`)
+              }
             }
           }
         }
@@ -53,6 +61,72 @@ export function FileUpload({ onUploadComplete, onError }: FileUploadProps) {
     },
     [onUploadComplete, onError],
   )
+
+  const uploadFolderWithStructure = async (files: File[]) => {
+    // Create a map to store folder IDs by path
+    const folderMap = new Map<string, string>() // path -> folderId
+    folderMap.set("", null as any) // Root folder
+
+    // Sort files by path depth to create folders first
+    const filesWithPath = files.map(file => ({
+      file,
+      path: (file as any).webkitRelativePath || file.name,
+      parts: ((file as any).webkitRelativePath || file.name).split("/"),
+    })).sort((a, b) => a.parts.length - b.parts.length)
+
+    // Upload files in order, creating folders as needed
+    for (const { file, path, parts } of filesWithPath) {
+      const fileName = parts[parts.length - 1]
+      const folderPath = parts.slice(0, -1).join("/")
+      
+      // Get or create parent folder ID
+      let parentId = folderMap.get(folderPath) || null
+      
+      // If we need a parent folder and don't have it, create it
+      if (folderPath && !folderMap.has(folderPath)) {
+        // Create all parent folders in the path
+        const pathParts = folderPath.split("/")
+        let currentPath = ""
+        
+        for (let i = 0; i < pathParts.length; i++) {
+          const folderName = pathParts[i]
+          currentPath = i === 0 ? folderName : `${currentPath}/${folderName}`
+          const parentPath = i === 0 ? "" : pathParts.slice(0, i).join("/")
+          const parentFolderId = folderMap.get(parentPath) || null
+          
+          if (!folderMap.has(currentPath)) {
+            try {
+              const folder = await fileAPI.createFolder(folderName, parentFolderId)
+              folderMap.set(currentPath, folder.id)
+              setUploadProgress((prev) => ({
+                ...prev,
+                [`📁 ${folderName}`]: 100,
+              }))
+            } catch (err: any) {
+              console.error(`Failed to create folder ${folderName}:`, err)
+              // Continue anyway - might already exist
+            }
+          }
+        }
+        
+        parentId = folderMap.get(folderPath) || null
+      }
+
+      // Upload the file with parent folder
+      try {
+        await fileAPI.uploadFile(file, fileName, parentId)
+        setUploadProgress((prev) => ({
+          ...prev,
+          [path]: 100,
+        }))
+      } catch (err: any) {
+        console.error(`Failed to upload ${path}:`, err)
+        if (onError) {
+          onError(`Failed to upload ${path}: ${err.message}`)
+        }
+      }
+    }
+  }
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -103,6 +177,26 @@ export function FileUpload({ onUploadComplete, onError }: FileUploadProps) {
     fileInputRef.current?.click()
   }, [])
 
+  const folderInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFolderClick = useCallback(() => {
+    folderInputRef.current?.click()
+  }, [])
+
+  const handleFolderInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files
+      if (files && files.length > 0) {
+        handleFileUpload(files)
+      }
+      // Reset input so same folder can be selected again
+      if (folderInputRef.current) {
+        folderInputRef.current.value = ""
+      }
+    },
+    [handleFileUpload],
+  )
+
   return (
     <>
       <input
@@ -112,6 +206,16 @@ export function FileUpload({ onUploadComplete, onError }: FileUploadProps) {
         onChange={handleFileInputChange}
         className="hidden"
         aria-label="Upload files"
+      />
+      <input
+        ref={folderInputRef}
+        type="file"
+        multiple
+        webkitdirectory=""
+        directory=""
+        onChange={handleFolderInputChange}
+        className="hidden"
+        aria-label="Upload folder"
       />
 
       {/* Drag & Drop Overlay */}
@@ -131,25 +235,37 @@ export function FileUpload({ onUploadComplete, onError }: FileUploadProps) {
         </div>
       )}
 
-      {/* Upload Button */}
-      <button
-        onClick={handleClick}
-        disabled={uploading}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-        aria-label="Upload files"
-      >
-        {uploading ? (
-          <>
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            <span>Uploading...</span>
-          </>
-        ) : (
-          <>
-            <Upload className="w-4 h-4" />
-            <span>Upload</span>
-          </>
-        )}
-      </button>
+      {/* Upload Buttons */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleClick}
+          disabled={uploading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+          aria-label="Upload files"
+        >
+          {uploading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Uploading...</span>
+            </>
+          ) : (
+            <>
+              <Upload className="w-4 h-4" />
+              <span>Upload</span>
+            </>
+          )}
+        </button>
+        <button
+          onClick={handleFolderClick}
+          disabled={uploading}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+          aria-label="Upload folder"
+          title="Upload a folder with all its contents"
+        >
+          <Upload className="w-4 h-4" />
+          <span>Upload Folder</span>
+        </button>
+      </div>
 
       {/* Upload Progress (optional - can be shown in a toast or progress bar) */}
       {uploading && Object.keys(uploadProgress).length > 0 && (
@@ -217,15 +333,30 @@ export function FileUploadZone({ children, onUploadComplete, onError }: FileUplo
 
       const files = e.dataTransfer.files
       if (files.length > 0) {
-        try {
-          for (const file of Array.from(files)) {
-            await fileAPI.uploadFile(file)
-          }
-          onUploadComplete()
-        } catch (err: any) {
-          console.error("Upload error:", err)
+        // Check if this is a folder drop (has webkitRelativePath)
+        const fileArray = Array.from(files)
+        const isFolderUpload = fileArray.some(file => (file as any).webkitRelativePath)
+        
+        if (isFolderUpload) {
+          // Use the same folder upload logic
+          // Note: This requires the uploadFolderWithStructure function to be accessible
+          // For now, we'll handle it in the FileUpload component
+          console.log("Folder drop detected - please use the Upload Folder button for folder uploads")
           if (onError) {
-            onError(err.message || "Failed to upload files")
+            onError("Please use the 'Upload Folder' button to upload folders with structure")
+          }
+        } else {
+          // Regular file upload
+          try {
+            for (const file of fileArray) {
+              await fileAPI.uploadFile(file)
+            }
+            onUploadComplete()
+          } catch (err: any) {
+            console.error("Upload error:", err)
+            if (onError) {
+              onError(err.message || "Failed to upload files")
+            }
           }
         }
       }
