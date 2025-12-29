@@ -13,9 +13,10 @@ interface HeaderProps {
   onSearchChange: (query: string) => void
   onUploadComplete?: () => void
   onUploadError?: (error: string) => void
+  currentFolderId?: string | null
 }
 
-export function Header({ searchQuery, onSearchChange, onUploadComplete, onUploadError }: HeaderProps) {
+export function Header({ searchQuery, onSearchChange, onUploadComplete, onUploadError, currentFolderId }: HeaderProps) {
   const { user, logout } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -60,7 +61,11 @@ export function Header({ searchQuery, onSearchChange, onUploadComplete, onUpload
 
       {/* Header Actions */}
       <div className="flex items-center gap-2">
-        <FileUpload onUploadComplete={onUploadComplete || (() => {})} onError={onUploadError} />
+        <FileUpload 
+          onUploadComplete={onUploadComplete || (() => {})} 
+          onError={onUploadError}
+          currentFolderId={currentFolderId}
+        />
         
         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
           <HelpCircle className="w-5 h-5" />

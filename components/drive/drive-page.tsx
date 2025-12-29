@@ -13,6 +13,7 @@ import { DeleteConfirmDialog } from "./delete-confirm-dialog"
 import { FileInfoDialog } from "./file-info-dialog"
 import { ShareDialog } from "./share-dialog"
 import { FileViewer } from "./file-viewer"
+import { Breadcrumb } from "./breadcrumb"
 import type { File } from "@/lib/types"
 import { getFileIcon, formatDate, formatFileSize } from "@/lib/utils/file"
 import { fileAPI } from "@/lib/api"
@@ -31,6 +32,9 @@ export default function DrivePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [activeNav, setActiveNav] = useState("mydrive")
+  // Folder navigation state
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
+  const [breadcrumbs, setBreadcrumbs] = useState<Array<{ id: string | null; name: string }>>([{ id: null, name: "My Drive" }])
 
   // Dialogs
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -55,8 +59,8 @@ export default function DrivePage() {
         // Use search endpoint if there's a search query
         fetchedFiles = await fileAPI.searchFiles(searchQuery.trim())
       } else {
-        // Otherwise use regular getFiles
-        fetchedFiles = await fileAPI.getFiles(100, 0)
+        // Otherwise use regular getFiles with current folder filter
+        fetchedFiles = await fileAPI.getFiles(100, 0, currentFolderId)
       }
       
       // Transform backend response to match frontend File type
@@ -94,6 +98,7 @@ export default function DrivePage() {
           mimeType: file.mime_type || (isFolder ? "folder" : "application/octet-stream"),
           icon: getFileIcon(isFolder ? "folder" : "file", displayName),
           description: file.description,
+          parentId: file.parent_id || null,
         }
       })
       
@@ -110,7 +115,7 @@ export default function DrivePage() {
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, typeFilter, activeNav])
+  }, [searchQuery, typeFilter, activeNav, currentFolderId])
 
   // Fetch files on mount and when filters change
   useEffect(() => {
@@ -123,16 +128,12 @@ export default function DrivePage() {
   const handleCreateFile = useCallback(async (name: string, type: "file" | "folder") => {
     try {
       if (type === "folder") {
-        // Create folder via API
-        await fileAPI.createFolder(name)
+        // Create folder via API with current folder as parent
+        await fileAPI.createFolder(name, currentFolderId || undefined)
         showToast(`Folder "${name}" created successfully`, "success")
         // Refresh file list to show the new folder
         await fetchFiles()
       } else {
-        // For file creation, the file picker is handled in CreateFileDialog
-        // This function receives the file name and type, but actual file selection
-        // happens in the dialog component. We just need to refresh the list.
-        // The actual upload is handled by the dialog's file input handler.
         await fetchFiles()
       }
     } catch (err: any) {
@@ -141,7 +142,7 @@ export default function DrivePage() {
       setError(errorMsg)
       showToast(errorMsg, "error")
     }
-  }, [fetchFiles, showToast])
+  }, [fetchFiles, showToast, currentFolderId])
 
   const handleDeleteFile = useCallback(async () => {
     if (!selectedFile) return
@@ -183,13 +184,22 @@ export default function DrivePage() {
 
   const handleFileClick = useCallback((file: File) => {
     if (file.type === "folder") {
-      // TODO: Navigate into folder
-      console.log("Navigate to folder:", file.name)
+      // Navigate into folder
+      setCurrentFolderId(file.id)
+      setBreadcrumbs(prev => [...prev, { id: file.id, name: file.name }])
+      // Clear search when navigating
+      setSearchQuery("")
     } else {
       // Open file in viewer
       setViewingFile(file)
       setFileViewerOpen(true)
     }
+  }, [])
+
+  const handleBreadcrumbClick = useCallback((folderId: string | null, index: number) => {
+    setCurrentFolderId(folderId)
+    setBreadcrumbs(prev => prev.slice(0, index + 1))
+    setSearchQuery("")
   }, [])
 
   const handleViewerNext = useCallback(() => {
@@ -258,7 +268,7 @@ export default function DrivePage() {
   )
 
   return (
-    <FileUploadZone onUploadComplete={fetchFiles} onError={setError}>
+    <FileUploadZone onUploadComplete={fetchFiles} onError={setError} currentFolderId={currentFolderId}>
       <div className="flex h-screen bg-background text-foreground">
         <Sidebar onNewClick={() => setCreateDialogOpen(true)} activeNav={activeNav} onNavChange={setActiveNav} />
 
@@ -268,14 +278,20 @@ export default function DrivePage() {
           onSearchChange={setSearchQuery}
           onUploadComplete={fetchFiles}
           onUploadError={setError}
+          currentFolderId={currentFolderId}
         />
 
         <div className="flex-1 overflow-auto px-6 py-4">
           {/* Header and Filters */}
           <div className="mb-6">
+            {/* Breadcrumb Navigation */}
+            {activeNav !== "shared" && (
+              <Breadcrumb items={breadcrumbs} onItemClick={handleBreadcrumbClick} />
+            )}
+            
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-3xl font-light text-foreground">
-                {activeNav === "shared" ? "Shared with me" : "My Drive"}
+                {activeNav === "shared" ? "Shared with me" : breadcrumbs[breadcrumbs.length - 1]?.name || "My Drive"}
               </h1>
             </div>
 
@@ -346,6 +362,7 @@ export default function DrivePage() {
         onCreateFile={handleCreateFile}
         onUploadComplete={fetchFiles}
         onError={setError}
+        currentFolderId={currentFolderId}
       />
 
       <RenameDialog

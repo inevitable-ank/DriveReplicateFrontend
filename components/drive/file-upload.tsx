@@ -7,9 +7,10 @@ import { fileAPI } from "@/lib/api"
 interface FileUploadProps {
   onUploadComplete: () => void
   onError?: (error: string) => void
+  currentFolderId?: string | null
 }
 
-export function FileUpload({ onUploadComplete, onError }: FileUploadProps) {
+export function FileUpload({ onUploadComplete, onError, currentFolderId }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({})
@@ -31,7 +32,7 @@ export function FileUpload({ onUploadComplete, onError }: FileUploadProps) {
           // Handle regular file upload
           for (const file of fileArray) {
             try {
-              await fileAPI.uploadFile(file)
+              await fileAPI.uploadFile(file, undefined, currentFolderId || undefined)
               setUploadProgress((prev) => ({
                 ...prev,
                 [file.name]: 100,
@@ -305,7 +306,7 @@ export function FileUpload({ onUploadComplete, onError }: FileUploadProps) {
 }
 
 // Invisible drag & drop zone wrapper
-export function FileUploadZone({ children, onUploadComplete, onError }: FileUploadProps & { children: React.ReactNode }) {
+export function FileUploadZone({ children, onUploadComplete, onError, currentFolderId }: FileUploadProps & { children: React.ReactNode }) {
   const [isDragging, setIsDragging] = useState(false)
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -349,7 +350,7 @@ export function FileUploadZone({ children, onUploadComplete, onError }: FileUplo
           // Regular file upload
           try {
             for (const file of fileArray) {
-              await fileAPI.uploadFile(file)
+              await fileAPI.uploadFile(file, undefined, currentFolderId || undefined)
             }
             onUploadComplete()
           } catch (err: any) {

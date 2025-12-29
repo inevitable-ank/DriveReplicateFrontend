@@ -16,6 +16,7 @@ export interface User {
     mimeType: string
     icon: string
     description?: string
+    parentId?: string | null
   }
   
   export interface DialogState {

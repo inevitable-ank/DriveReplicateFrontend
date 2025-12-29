@@ -164,11 +164,14 @@ export const authAPI = {
 
 // File API functions
 export const fileAPI = {
-  // Get all files (matches backend: GET /api/files?limit=100&offset=0)
-  getFiles: async (limit: number = 100, offset: number = 0) => {
+  // Get all files (matches backend: GET /api/files?limit=100&offset=0&parent_id=xxx)
+  getFiles: async (limit: number = 100, offset: number = 0, parentId?: string | null) => {
     const queryParams = new URLSearchParams();
     queryParams.append("limit", limit.toString());
     queryParams.append("offset", offset.toString());
+    if (parentId !== undefined && parentId !== null) {
+      queryParams.append("parent_id", parentId);
+    }
     
     const response = await apiCall<{
       success: boolean;

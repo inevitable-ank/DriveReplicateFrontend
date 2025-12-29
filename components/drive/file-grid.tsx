@@ -40,10 +40,8 @@ function FileCard({
       return
     }
     
-    if (file.type === "folder") {
-      // TODO: Handle folder navigation
-      console.log("Folder clicked:", file.name)
-    } else if (onClick) {
+    // Always call onClick - let the parent handle folder vs file logic
+    if (onClick) {
       onClick(file)
     }
   }

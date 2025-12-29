@@ -15,9 +15,10 @@ interface CreateFileDialogProps {
   onCreateFile: (name: string, type: "file" | "folder") => void
   onUploadComplete?: () => void
   onError?: (error: string) => void
+  currentFolderId?: string | null
 }
 
-export function CreateFileDialog({ open, onOpenChange, onCreateFile, onUploadComplete, onError }: CreateFileDialogProps) {
+export function CreateFileDialog({ open, onOpenChange, onCreateFile, onUploadComplete, onError, currentFolderId }: CreateFileDialogProps) {
   const [fileName, setFileName] = useState("")
   const [fileType, setFileType] = useState<"file" | "folder">("file")
   const [uploading, setUploading] = useState(false)
@@ -52,8 +53,8 @@ export function CreateFileDialog({ open, onOpenChange, onCreateFile, onUploadCom
       setUploading(true)
       
       try {
-        // Upload file with custom name if provided
-        await fileAPI.uploadFile(file, fileName.trim() || undefined)
+        // Upload file with custom name if provided, into current folder
+        await fileAPI.uploadFile(file, fileName.trim() || undefined, currentFolderId || undefined)
         
         // Call onCreateFile callback for consistency
         onCreateFile(fileName.trim() || file.name, "file")
