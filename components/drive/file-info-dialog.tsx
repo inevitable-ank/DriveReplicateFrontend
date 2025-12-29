@@ -9,9 +9,10 @@ interface FileInfoDialogProps {
   open: boolean
   file: File | null
   onOpenChange: (open: boolean) => void
+  onShareClick?: () => void
 }
 
-export function FileInfoDialog({ open, file, onOpenChange }: FileInfoDialogProps) {
+export function FileInfoDialog({ open, file, onOpenChange, onShareClick }: FileInfoDialogProps) {
   if (!file) return null
 
   return (
@@ -44,7 +45,10 @@ export function FileInfoDialog({ open, file, onOpenChange }: FileInfoDialogProps
               <Download className="w-4 h-4" />
               Download
             </Button>
-            <Button className="flex-1 bg-gray-700 hover:bg-gray-600 text-white gap-2">
+            <Button 
+              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white gap-2"
+              onClick={onShareClick}
+            >
               <Share2 className="w-4 h-4" />
               Share
             </Button>

@@ -11,6 +11,7 @@ import { CreateFileDialog } from "./create-file-dialog"
 import { RenameDialog } from "./rename-dialog"
 import { DeleteConfirmDialog } from "./delete-confirm-dialog"
 import { FileInfoDialog } from "./file-info-dialog"
+import { ShareDialog } from "./share-dialog"
 import type { File } from "@/lib/types"
 import { getFileIcon, formatDate, formatFileSize } from "@/lib/utils/file"
 import { fileAPI } from "@/lib/api"
@@ -35,6 +36,7 @@ export default function DrivePage() {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [fileInfoDialogOpen, setFileInfoDialogOpen] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
 
   // Fetch files from API
   const fetchFiles = useCallback(async () => {
@@ -43,10 +45,14 @@ export default function DrivePage() {
     try {
       let fetchedFiles: any[] = []
       
-      // Use search endpoint if there's a search query, otherwise use regular getFiles
-      if (searchQuery.trim()) {
+      // Check if we're viewing "Shared with me"
+      if (activeNav === "shared") {
+        fetchedFiles = await fileAPI.getSharedFiles()
+      } else if (searchQuery.trim()) {
+        // Use search endpoint if there's a search query
         fetchedFiles = await fileAPI.searchFiles(searchQuery.trim())
       } else {
+        // Otherwise use regular getFiles
         fetchedFiles = await fileAPI.getFiles(100, 0)
       }
       
@@ -101,7 +107,7 @@ export default function DrivePage() {
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, typeFilter])
+  }, [searchQuery, typeFilter, activeNav])
 
   // Fetch files on mount and when filters change
   useEffect(() => {
@@ -207,8 +213,7 @@ export default function DrivePage() {
           break
         case "share":
           if (selectedFile) {
-            // TODO: Implement share functionality via API
-            console.log("Share functionality not yet implemented")
+            setShareDialogOpen(true)
           }
           setContextMenu(null)
           break
@@ -236,7 +241,9 @@ export default function DrivePage() {
           {/* Header and Filters */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-3xl font-light text-foreground">My Drive</h1>
+              <h1 className="text-3xl font-light text-foreground">
+                {activeNav === "shared" ? "Shared with me" : "My Drive"}
+              </h1>
             </div>
 
             <FilterBar
@@ -318,7 +325,22 @@ export default function DrivePage() {
         onConfirm={handleDeleteFile}
       />
 
-      <FileInfoDialog open={fileInfoDialogOpen} file={selectedFile} onOpenChange={setFileInfoDialogOpen} />
+      <FileInfoDialog 
+        open={fileInfoDialogOpen} 
+        file={selectedFile} 
+        onOpenChange={setFileInfoDialogOpen}
+        onShareClick={() => {
+          setFileInfoDialogOpen(false)
+          setShareDialogOpen(true)
+        }}
+      />
+
+      <ShareDialog
+        open={shareDialogOpen}
+        file={selectedFile}
+        onOpenChange={setShareDialogOpen}
+        onShareComplete={fetchFiles}
+      />
       </div>
     </FileUploadZone>
   )

@@ -23,7 +23,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Trash2: <Trash2 className="w-5 h-5" />,
 }
 
-export function Sidebar({ onNewClick, activeNav = "mydrive" }: SidebarProps) {
+export function Sidebar({ onNewClick, activeNav = "mydrive", onNavChange }: SidebarProps) {
   const storagePercentage = (STORAGE_USED / STORAGE_LIMIT) * 100
 
   return (
@@ -39,7 +39,13 @@ export function Sidebar({ onNewClick, activeNav = "mydrive" }: SidebarProps) {
       {/* Navigation Items */}
       <nav className="space-y-1 flex-1">
         {SIDEBAR_NAVIGATION.map((item) => (
-          <NavItem key={item.id} icon={ICON_MAP[item.icon]} label={item.label} active={activeNav === item.id} />
+          <NavItem 
+            key={item.id} 
+            icon={ICON_MAP[item.icon]} 
+            label={item.label} 
+            active={activeNav === item.id}
+            onClick={() => onNavChange?.(item.id)}
+          />
         ))}
       </nav>
 

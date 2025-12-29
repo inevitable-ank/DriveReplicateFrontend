@@ -269,5 +269,91 @@ export const fileAPI = {
     });
     return response.data.file;
   },
+
+  // Share file with user
+  shareFile: async (fileId: string, email: string, permission: "view" | "edit" = "view") => {
+    const response = await apiCall<{
+      success: boolean;
+      data: { file: any; shared_with: any };
+    }>(`/files/${fileId}/share`, {
+      method: "POST",
+      body: JSON.stringify({ email, permission }),
+    });
+    return response.data;
+  },
+
+  // Get share information for a file
+  getShareInfo: async (fileId: string) => {
+    const response = await apiCall<{
+      success: boolean;
+      data: {
+        shared_with: any[];
+        share_link: any;
+      };
+    }>(`/files/${fileId}/share`, {
+      method: "GET",
+    });
+    return response.data;
+  },
+
+  // Create shareable link
+  createShareLink: async (fileId: string, permission: "view" | "edit" = "view") => {
+    const response = await apiCall<{
+      success: boolean;
+      data: {
+        share_link: string;
+        token: string;
+        permission: string;
+        expires_at: string | null;
+      };
+    }>(`/files/${fileId}/share-link`, {
+      method: "POST",
+      body: JSON.stringify({ permission }),
+    });
+    // Transform backend response to match frontend structure
+    return {
+      enabled: true,
+      link: response.data.share_link,
+      token: response.data.token,
+      permission: response.data.permission,
+      expires_at: response.data.expires_at,
+    };
+  },
+
+  // Revoke share access for a user
+  revokeShareAccess: async (fileId: string, userId: string) => {
+    await apiCall(`/files/${fileId}/share/${userId}`, {
+      method: "DELETE",
+    });
+  },
+
+  // Remove share link
+  removeShareLink: async (fileId: string) => {
+    await apiCall(`/files/${fileId}/share-link`, {
+      method: "DELETE",
+    });
+  },
+
+  // Get shared files (files shared with me)
+  getSharedFiles: async () => {
+    const response = await apiCall<{
+      success: boolean;
+      data: { files: any[] };
+    }>("/files/shared", {
+      method: "GET",
+    });
+    return response.data.files;
+  },
+
+  // Get shared file by token (for accessing via share link)
+  getSharedFileByToken: async (token: string) => {
+    const response = await apiCall<{
+      success: boolean;
+      data: { file: any };
+    }>(`/files/shared/${token}`, {
+      method: "GET",
+    });
+    return response.data.file;
+  },
 };
 
