@@ -97,7 +97,7 @@ export function FileUpload({ onUploadComplete, onError, currentFolderId }: FileU
           
           if (!folderMap.has(currentPath)) {
             try {
-              const folder = await fileAPI.createFolder(folderName, parentFolderId)
+              const folder = await fileAPI.createFolder(folderName, parentFolderId ?? undefined)
               folderMap.set(currentPath, folder.id)
               setUploadProgress((prev) => ({
                 ...prev,
@@ -212,8 +212,7 @@ export function FileUpload({ onUploadComplete, onError, currentFolderId }: FileU
         ref={folderInputRef}
         type="file"
         multiple
-        webkitdirectory=""
-        directory=""
+        {...({ webkitdirectory: "", directory: "" } as any)}
         onChange={handleFolderInputChange}
         className="hidden"
         aria-label="Upload folder"

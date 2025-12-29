@@ -121,7 +121,7 @@ export function ShareDialog({ open, file, onOpenChange, onShareComplete }: Share
       // Set the share link with the returned data
       setShareLink({
         enabled: true,
-        link: linkData.link || linkData.share_link,
+        link: linkData.link,
         token: linkData.token,
         permission: linkData.permission as "view" | "edit",
       })
