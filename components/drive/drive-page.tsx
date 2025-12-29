@@ -60,13 +60,26 @@ export default function DrivePage() {
         // 'original_name' is just metadata about the original filename
         const displayName = file.name || file.original_name
         
+        // Format file size - backend returns size as string (e.g., "73353")
+        let formattedSize = "—"
+        if (!isFolder && file.size) {
+          // Convert string to number if needed, then format
+          const sizeInBytes = typeof file.size === "number" 
+            ? file.size 
+            : parseInt(file.size, 10)
+          
+          if (!isNaN(sizeInBytes) && sizeInBytes > 0) {
+            formattedSize = formatFileSize(sizeInBytes)
+          } else {
+            formattedSize = file.size || "0 KB"
+          }
+        }
+        
         return {
           id: file.id || file._id,
           name: displayName,
           type: isFolder ? "folder" : "file",
-          size: typeof file.size === "number" 
-            ? formatFileSize(file.size) 
-            : (isFolder ? "—" : file.size || "0 KB"),
+          size: formattedSize,
           modifiedDate: file.created_at ? formatDate(new Date(file.created_at)) : formatDate(new Date()),
           owner: file.owner?.name || "You",
           mimeType: file.mime_type || (isFolder ? "folder" : "application/octet-stream"),
