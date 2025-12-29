@@ -357,15 +357,38 @@ export const fileAPI = {
   },
 
   // Download shared file using share token (no auth required)
-  downloadSharedFile: async (shareToken: string, fileName: string) => {
-    // Don't use apiCall here - we don't want to add auth headers
-    const response = await fetch(
+  // Try multiple approaches since backend might support different methods
+  downloadSharedFile: async (shareToken: string, fileName: string, fileId?: string) => {
+    // Try approach 1: Direct download endpoint with share token
+    let response = await fetch(
       `${API_BASE_URL}/files/shared/${shareToken}/download`,
       {
         method: "GET",
-        // No Authorization header - the share token is in the URL
       }
     );
+    
+    // If that fails and we have fileId, try approach 2: Use fileId with share token as query param
+    if (!response.ok && fileId) {
+      response = await fetch(
+        `${API_BASE_URL}/files/${fileId}/download?shareToken=${encodeURIComponent(shareToken)}`,
+        {
+          method: "GET",
+        }
+      );
+    }
+    
+    // If that fails and we have fileId, try approach 3: Use fileId with share token in header
+    if (!response.ok && fileId) {
+      response = await fetch(
+        `${API_BASE_URL}/files/${fileId}/download`,
+        {
+          method: "GET",
+          headers: {
+            'X-Share-Token': shareToken,
+          },
+        }
+      );
+    }
     
     if (!response.ok) {
       const errorText = await response.text();

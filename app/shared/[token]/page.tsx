@@ -44,8 +44,8 @@ export default function SharedFilePage() {
     
     try {
       showToast(`Downloading ${file.name}...`, "info")
-      // Use the share token to download instead of file ID with auth
-      await fileAPI.downloadSharedFile(token, file.name || file.original_name)
+      // Use the share token to download, passing file ID as fallback
+      await fileAPI.downloadSharedFile(token, file.name || file.original_name, file.id)
       showToast(`Download started: ${file.name}`, "success")
     } catch (err: any) {
       console.error("Failed to download file:", err)
